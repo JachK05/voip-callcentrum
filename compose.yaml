@@ -1,0 +1,6 @@
+services:
+  pbx:
+    build: ./lab
+    network_mode: none
+    volumes:
+      - ./pokusy:/pokusy

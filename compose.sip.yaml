@@ -1,0 +1,9 @@
+name: voip-callcentrum-sip
+services:
+  pbx-sip:
+    build:
+      context: ./lab
+      target: sip
+    ports:
+      - "127.0.0.1:15060:15060/udp"
+      - "127.0.0.1:17000-17009:17000-17009/udp"
