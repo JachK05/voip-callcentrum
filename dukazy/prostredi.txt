@@ -1,0 +1,6 @@
+﻿2026-11-23T17:27:02.6780354+01:00
+Microsoft Windows 11 Pro
+Docker version 29.9.3, build 5457199
+Docker Compose version v5.7.0
+No ethernet interface found for seeding global EID. You will have to set it manually.
+Asterisk 20.11.1 built by buildozer @ build-3-22-x86_64 on a x86_64 running Linux on 2025-07-16 16:38:58 UTC
