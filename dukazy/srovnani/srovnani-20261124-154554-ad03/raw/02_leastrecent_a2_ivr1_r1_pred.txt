@@ -1,0 +1,6 @@
+No ethernet interface found for seeding global EID. You will have to set it manually.
+q8d899096cc has 0 calls (max unlimited) in 'leastrecent' strategy (0s holdtime, 0s talktime), W:0, C:0, A:0, SL:0.0%, SL2:0.0% within 0s
+   Members: 
+      A102 (Local/102@agenti/n from Custom:agent102) (ringinuse disabled) (Not in use) has taken no calls yet (login was 0 secs ago)
+      A101 (Local/101@agenti/n from Custom:agent101) (ringinuse disabled) (Not in use) has taken no calls yet (login was 0 secs ago)
+   No Callers

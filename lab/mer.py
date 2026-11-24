@@ -18,6 +18,7 @@ from uuid import uuid4
 STRATEGIE = ("ringall", "leastrecent", "fewestcalls")
 POCET = 6
 ROZESTUP = 1.0
+ROZESTUP_SROVNANI = 12.0
 LOG = Path("/var/log/asterisk/queue_log")
 LOG_SERIE = "queue_log_serie.txt"
 KONFIG = Path("/etc/asterisk/lab-aktivni.conf")
@@ -95,7 +96,7 @@ def zpracuj(radky, strategie, agenti, hloubka, opak, beh):
     return vysledky
 
 
-def zmer(cil, strategie, agenti, hloubka, opak, poradi):
+def zmer(cil, strategie, agenti, hloubka, opak, poradi, *, rozestup=ROZESTUP):
     beh = f"{poradi:02}_{strategie}_a{agenti}_ivr{hloubka}_r{opak}"
     fronta = "q" + uuid4().hex[:10]
     raw = cil / "raw"
@@ -108,7 +109,7 @@ def zmer(cil, strategie, agenti, hloubka, opak, poradi):
     cislo = 700 + hloubka
     zacatek = time.monotonic()
     for i in range(POCET):
-        time.sleep(max(0, zacatek + i * ROZESTUP - time.monotonic()))
+        time.sleep(max(0, zacatek + i * rozestup - time.monotonic()))
         cli(f"channel originate Local/{cislo}@vstup/n extension {cislo}@volajici")
         print(f"  Volající {i + 1}/{POCET}", flush=True)
     deadline = time.monotonic() + 105
@@ -240,6 +241,7 @@ def main():
     demo.add_argument("agenti", choices=(1, 2), type=int)
     demo.add_argument("ivr", choices=(1, 2), type=int)
     volby.add_parser("serie", help="Všech 12 kombinací, každá dvakrát")
+    volby.add_parser("srovnani", help="Tři strategie, dva agenti, jedna úroveň IVR, hovory po 12 s")
     a = parser.parse_args()
     SLOZKA.mkdir(exist_ok=True)
     with open("/tmp/mereni.lock", "a") as lock:
@@ -253,23 +255,27 @@ def main():
         cil = SLOZKA / (a.rezim + "-" + time.strftime("%Y%m%d-%H%M%S") + "-" + uuid4().hex[:4])
         (cil / "raw").mkdir(parents=True)
         print("Výstup na notebooku: pokusy/" + cil.name, flush=True)
+        rozestup = ROZESTUP
         if a.rezim == "demo":
             plan = [(a.strategie, a.agenti, a.ivr, 1)]
+        elif a.rezim == "srovnani":
+            plan = [(strategie, 2, 1, 1) for strategie in STRATEGIE]
+            rozestup = ROZESTUP_SROVNANI
         else:
             kombinace = list(product(STRATEGIE, (1, 2), (1, 2)))
             Random(8).shuffle(kombinace)
             plan = [(*k, 1) for k in kombinace] + [(*k, 2) for k in reversed(kombinace)]
         meta = dict(asterisk=cli("core show version"), cas_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                    rezim=a.rezim, plan=plan, hovoru_na_beh=POCET, rozestup_s=ROZESTUP,
+                    rezim=a.rezim, plan=plan, hovoru_na_beh=POCET, rozestup_s=rozestup,
                     zvednuti_agenta_s={"101": 1, "102": 3}, obsluha_s=6,
                     klavesy_ivr=["1", "2"], prodleva_pred_volbou_s=2, stav="rozpracovano")
         (cil / "metodika.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
         zacatek_logu = LOG.stat().st_size if LOG.exists() else 0
         data = []
         for i, (s, n, d, r) in enumerate(plan, 1):
-            data.extend(zmer(cil, s, n, d, r, i))
+            data.extend(zmer(cil, s, n, d, r, i, rozestup=rozestup))
             uloz_csv(cil / "hovory.csv", data)
-        if a.rezim == "serie":
+        if a.rezim in ("serie", "srovnani"):
             with LOG.open("rb") as f:
                 f.seek(zacatek_logu)
                 (cil / LOG_SERIE).write_bytes(f.read())
