@@ -248,6 +248,7 @@ def main():
     volby.add_parser("serie", help="Všech 12 kombinací, každá dvakrát")
     volby.add_parser("srovnani", help="Tři strategie, dva agenti, jedna úroveň IVR, hovory po 12 s")
     volby.add_parser("tri-agenti", help="Dva a tři agenti, tři strategie, IVR 1, dvě opakování")
+    volby.add_parser("tri-agenti-ivr2", help="Tři agenti, tři strategie, IVR 2, dvě opakování")
     a = parser.parse_args()
     SLOZKA.mkdir(exist_ok=True)
     with open("/tmp/mereni.lock", "a") as lock:
@@ -268,7 +269,12 @@ def main():
             plan = [(strategie, 2, 1, 1) for strategie in STRATEGIE]
             rozestup = ROZESTUP_SROVNANI
         else:
-            pocty_agentu, menu = ((2, 3), (1,)) if a.rezim == "tri-agenti" else ((1, 2), (1, 2))
+            if a.rezim == "tri-agenti-ivr2":
+                pocty_agentu, menu = (3,), (2,)
+            elif a.rezim == "tri-agenti":
+                pocty_agentu, menu = (2, 3), (1,)
+            else:
+                pocty_agentu, menu = (1, 2), (1, 2)
             kombinace = list(product(STRATEGIE, pocty_agentu, menu))
             Random(8).shuffle(kombinace)
             plan = [(*k, 1) for k in kombinace] + [(*k, 2) for k in reversed(kombinace)]
