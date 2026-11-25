@@ -19,6 +19,7 @@ STRATEGIE = ("ringall", "leastrecent", "fewestcalls")
 POCET = 6
 ROZESTUP = 1.0
 ROZESTUP_SROVNANI = 12.0
+ZVEDNUTI_AGENTA = {101: 1, 102: 3, 103: 3}
 LOG = Path("/var/log/asterisk/queue_log")
 LOG_SERIE = "queue_log_serie.txt"
 KONFIG = Path("/etc/asterisk/lab-aktivni.conf")
@@ -135,7 +136,9 @@ def uloz_csv(cesta, radky):
 
 def souhrn(data):
     radky = []
-    for s, a, d in product(STRATEGIE, (1, 2), (1, 2)):
+    pocty_agentu = sorted({r["agenti"] for r in data})
+    sloupce_agentu = range(101, 101 + max(2, max(pocty_agentu, default=0)))
+    for s, a, d in product(STRATEGIE, pocty_agentu, (1, 2)):
         skupina = [r for r in data if (r["strategie"], r["agenti"], r["ivr"]) == (s, a, d)]
         if not skupina:
             continue
@@ -145,15 +148,15 @@ def souhrn(data):
                           max_fronta_s=max(cekani),
                           prumer_pred_frontou_s=round(mean(r["pred_frontou_s"] for r in skupina), 2),
                           prumer_celkem_s=round(mean(r["celkem_s"] for r in skupina), 2),
-                          prijal_101=sum(r["agent"] == 101 for r in skupina),
-                          prijal_102=sum(r["agent"] == 102 for r in skupina)))
+                          **{f"prijal_{agent}": sum(r["agent"] == agent for r in skupina)
+                             for agent in sloupce_agentu}))
     return radky
 
 
 def graf_cekani(cil, data):
     behy = {1: {}, 2: {}}
     for hovor in data:
-        if hovor["strategie"] == "ringall" and hovor["ivr"] == 1:
+        if hovor["strategie"] == "ringall" and hovor["ivr"] == 1 and hovor["agenti"] in behy:
             behy[hovor["agenti"]].setdefault(hovor["beh"], []).append(hovor["fronta_s"])
     if any(len(opakovani) != 2 for opakovani in behy.values()):
         return ""
@@ -211,7 +214,9 @@ def stranka(cil, souhrny, data):
     if (cil / LOG_SERIE).is_file():
         odkaz_na_log = f' · <a href="{LOG_SERIE}">Souvislý log celé série</a>'
     nadpisy = ["Strategie", "Agentů", "Úrovně IVR", "Hovorů", "Fronta Ø [s]", "Fronta medián [s]",
-               "Fronta max [s]", "Před frontou Ø [s]", "Do spojení Ø [s]", "Přijal 101", "Přijal 102"]
+               "Fronta max [s]", "Před frontou Ø [s]", "Do spojení Ø [s]"]
+    nadpisy.extend(f"Přijal {klíč.removeprefix('prijal_')}"
+                   for klíč in souhrny[0] if klíč.startswith("prijal_"))
     tabulka = "<tr>" + "".join(f"<th>{s}</th>" for s in nadpisy) + "</tr>"
     for r in souhrny:
         tabulka += "<tr>" + "".join(f"<td>{escape(str(v)).replace('.', ',')}</td>" for v in r.values()) + "</tr>"
@@ -238,10 +243,11 @@ def main():
     volby = parser.add_subparsers(dest="rezim", required=True)
     demo = volby.add_parser("demo", help="Jeden živý běh se šesti hovory")
     demo.add_argument("strategie", choices=STRATEGIE)
-    demo.add_argument("agenti", choices=(1, 2), type=int)
+    demo.add_argument("agenti", choices=(1, 2, 3), type=int)
     demo.add_argument("ivr", choices=(1, 2), type=int)
     volby.add_parser("serie", help="Všech 12 kombinací, každá dvakrát")
     volby.add_parser("srovnani", help="Tři strategie, dva agenti, jedna úroveň IVR, hovory po 12 s")
+    volby.add_parser("tri-agenti", help="Dva a tři agenti, tři strategie, IVR 1, dvě opakování")
     a = parser.parse_args()
     SLOZKA.mkdir(exist_ok=True)
     with open("/tmp/mereni.lock", "a") as lock:
@@ -262,12 +268,15 @@ def main():
             plan = [(strategie, 2, 1, 1) for strategie in STRATEGIE]
             rozestup = ROZESTUP_SROVNANI
         else:
-            kombinace = list(product(STRATEGIE, (1, 2), (1, 2)))
+            pocty_agentu, menu = ((2, 3), (1,)) if a.rezim == "tri-agenti" else ((1, 2), (1, 2))
+            kombinace = list(product(STRATEGIE, pocty_agentu, menu))
             Random(8).shuffle(kombinace)
             plan = [(*k, 1) for k in kombinace] + [(*k, 2) for k in reversed(kombinace)]
         meta = dict(asterisk=cli("core show version"), cas_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                     rezim=a.rezim, plan=plan, hovoru_na_beh=POCET, rozestup_s=rozestup,
-                    zvednuti_agenta_s={"101": 1, "102": 3}, obsluha_s=6,
+                    zvednuti_agenta_s={str(agent): cas for agent, cas in ZVEDNUTI_AGENTA.items()
+                                       if agent < 101 + max(pocet for _, pocet, _, _ in plan)},
+                    obsluha_s=6,
                     klavesy_ivr=["1", "2"], prodleva_pred_volbou_s=2, stav="rozpracovano")
         (cil / "metodika.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
         zacatek_logu = LOG.stat().st_size if LOG.exists() else 0
@@ -275,7 +284,7 @@ def main():
         for i, (s, n, d, r) in enumerate(plan, 1):
             data.extend(zmer(cil, s, n, d, r, i, rozestup=rozestup))
             uloz_csv(cil / "hovory.csv", data)
-        if a.rezim in ("serie", "srovnani"):
+        if a.rezim != "demo":
             with LOG.open("rb") as f:
                 f.seek(zacatek_logu)
                 (cil / LOG_SERIE).write_bytes(f.read())

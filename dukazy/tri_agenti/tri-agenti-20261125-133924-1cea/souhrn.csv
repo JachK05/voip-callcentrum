@@ -1,0 +1,7 @@
+﻿strategie;agenti;ivr;n;prumer_fronta_s;median_fronta_s;max_fronta_s;prumer_pred_frontou_s;prumer_celkem_s;prijal_101;prijal_102;prijal_103
+ringall;2;1;12;9.5;9.5;20;2;11.5;6;6;0
+ringall;3;1;12;6.83;6.5;12;2;8.83;6;3;3
+leastrecent;2;1;12;9;9.0;19;2;11;6;6;0
+leastrecent;3;1;12;5.67;4.5;10;2;7.67;4;4;4
+fewestcalls;2;1;12;9;9.0;19;2;11;6;6;0
+fewestcalls;3;1;12;5.5;4.5;10;2.5;8;4;4;4

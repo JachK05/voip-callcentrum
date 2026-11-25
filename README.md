@@ -46,4 +46,4 @@ docker compose -f compose.sip.yaml stop
 ```
 
 ## Dokumentace
-Po zveřejnění sem vložím adresu webu na Netlify.
+https://magical-youtiao-2e251a.netlify.app/

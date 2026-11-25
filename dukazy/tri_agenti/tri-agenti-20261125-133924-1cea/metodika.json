@@ -1,0 +1,93 @@
+{
+  "asterisk": "No ethernet interface found for seeding global EID. You will have to set it manually.\nAsterisk 20.11.1 built by buildozer @ build-3-22-x86_64 on a x86_64 running Linux on 2025-07-16 16:38:58 UTC",
+  "cas_utc": "2026-11-25T13:39:24Z",
+  "rezim": "tri-agenti",
+  "plan": [
+    [
+      "fewestcalls",
+      3,
+      1,
+      1
+    ],
+    [
+      "fewestcalls",
+      2,
+      1,
+      1
+    ],
+    [
+      "ringall",
+      2,
+      1,
+      1
+    ],
+    [
+      "leastrecent",
+      3,
+      1,
+      1
+    ],
+    [
+      "leastrecent",
+      2,
+      1,
+      1
+    ],
+    [
+      "ringall",
+      3,
+      1,
+      1
+    ],
+    [
+      "ringall",
+      3,
+      1,
+      2
+    ],
+    [
+      "leastrecent",
+      2,
+      1,
+      2
+    ],
+    [
+      "leastrecent",
+      3,
+      1,
+      2
+    ],
+    [
+      "ringall",
+      2,
+      1,
+      2
+    ],
+    [
+      "fewestcalls",
+      2,
+      1,
+      2
+    ],
+    [
+      "fewestcalls",
+      3,
+      1,
+      2
+    ]
+  ],
+  "hovoru_na_beh": 6,
+  "rozestup_s": 1.0,
+  "zvednuti_agenta_s": {
+    "101": 1,
+    "102": 3,
+    "103": 3
+  },
+  "obsluha_s": 6,
+  "klavesy_ivr": [
+    "1",
+    "2"
+  ],
+  "prodleva_pred_volbou_s": 2,
+  "stav": "dokonceno"
+}
